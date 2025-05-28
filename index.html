@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Table Number Checker - Marvel Theme</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for a heroic look - using Inter with bolding and shadows for a strong feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Deeper, more intense background gradient */
+            background: linear-gradient(135deg, #0a0a0a 0%, #1c1c1c 100%);
+            color: #e0e0e0; /* Light text for contrast */
+            background-attachment: fixed; /* Keep background fixed during scroll */
+        }
+        /* Custom styles for Marvel theme */
+        .marvel-red {
+            background-color: #ED1D24; /* Classic Marvel Red */
+        }
+        .marvel-red-hover:hover {
+            background-color: #CC0000;
+            transform: translateY(-2px); /* Slight lift effect on hover */
+            box-shadow: 0 15px 20px -5px rgba(237, 29, 36, 0.5), 0 6px 8px -3px rgba(237, 29, 36, 0.25); /* Enhanced shadow */
+        }
+        .marvel-blue-text {
+            color: #007bff; /* A strong blue for highlights */
+        }
+        .marvel-gold-text {
+            color: #FEEA00; /* Gold for accents */
+        }
+        .shadow-marvel {
+            box-shadow: 0 10px 15px -3px rgba(237, 29, 36, 0.3), 0 4px 6px -2px rgba(237, 29, 36, 0.15);
+        }
+        .shadow-marvel-blue {
+            box-shadow: 0 10px 15px -3px rgba(0, 123, 255, 0.3), 0 4px 6px -2px rgba(0, 123, 255, 0.15);
+        }
+
+        /* Text shadow for title */
+        .title-shadow {
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3), 0 0 10px rgba(255, 255, 255, 0.2), 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+        /* Text shadow for result text */
+        .result-text-shadow {
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Styles for autocomplete suggestions */
+        #suggestionsContainer {
+            max-height: 150px; /* Limit height for scrollability */
+            overflow-y: auto; /* Enable scrolling if many suggestions */
+            border: 1px solid #4a4a4a;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            background-color: #2a2a2a;
+            position: absolute; /* Position relative to its parent (the div containing input) */
+            width: calc(100% - 64px); /* Adjust width to match parent padding */
+            z-index: 10; /* Ensure it appears above other content */
+            left: 32px; /* Match parent padding */
+            right: 32px; /* Match parent padding */
+        }
+        .suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            color: #e0e0e0;
+            border-bottom: 1px solid #3a3a3a;
+        }
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .suggestion-item:hover {
+            background-color: #3a3a3a;
+            color: #FEEA00; /* Gold on hover */
+        }
+        /* Enhanced main container border with pseudo-elements for glow */
+        .hero-container {
+            position: relative;
+            border: 2px solid transparent; /* Base transparent border */
+            background-clip: padding-box; /* Important for background to not cover border */
+        }
+        .hero-container::before {
+            content: '';
+            position: absolute;
+            top: -2px; bottom: -2px; left: -2px; right: -2px; /* Cover the border area */
+            background: linear-gradient(45deg, #ED1D24, #FEEA00, #007bff); /* Gradient border */
+            z-index: -1;
+            border-radius: 8px; /* Match container border-radius */
+            filter: blur(5px); /* Soft glow effect */
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+        .hero-container:hover::before {
+            opacity: 1; /* More intense glow on hover */
+        }
+
+        /* Input focus glow */
+        input:focus {
+            box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5); /* Blue glow on focus */
+        }
+
+        /* Loading spinner styles */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #FEEA00; /* Gold spinner */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md hero-container">
+        <h1 class="text-4xl font-extrabold text-center text-red-600 mb-6 tracking-wide title-shadow">
+            <span class="marvel-gold-text">AVENGERS</span> <span class="text-white">ASSEMBLE!</span>
+        </h1>
+        <p class="text-center text-gray-300 mb-4 text-base"> Welcome, hero! The fate of the universe hangs in the balance, but first, let's ensure you're at the right station.
+        </p>
+        <p class="text-center text-gray-300 mb-8 text-base">Find your designated hero station.</p> <div class="mb-6">
+            <label for="guestName" class="block text-gray-200 text-sm font-semibold mb-2">Enter Hero Name:</label>
+            <input type="text" id="guestName" placeholder="e.g., Tony Stark"
+                   class="w-full px-4 py-3 border border-red-700 rounded-md bg-gray-700 text-white
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out
+                          placeholder-gray-400 text-lg">
+            <div id="suggestionsContainer" class="hidden rounded-b-md"></div>
+        </div>
+
+        <button id="searchButton"
+                class="w-full marvel-red text-white py-4 rounded-md marvel-red-hover
+                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800
+                       transition duration-200 ease-in-out font-bold text-xl shadow-marvel uppercase tracking-wider">
+            Locate Station
+        </button>
+
+        <p class="text-gray-500 text-sm italic text-center mt-4 mb-4">
+            If you need assistance, please ask one of our S.H.I.E.L.D. agents.
+        </p>
+
+        <div id="resultDisplay" class="mt-8 p-5 rounded-lg text-center hidden border-2 border-blue-500 shadow-marvel-blue">
+            <p id="resultText" class="text-2xl font-bold text-white result-text-shadow"></p>
+        </div>
+
+        <div id="missionBriefingSection" class="mt-8 hidden">
+            <button id="generateBriefingButton"
+                    class="w-full bg-yellow-600 text-gray-900 py-3 rounded-md hover:bg-yellow-700
+                           focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-800
+                           transition duration-200 ease-in-out font-semibold text-lg shadow-md flex items-center justify-center">
+                Get Mission Briefing ✨
+            </button>
+            <div id="briefingLoading" class="hidden mt-4 text-center">
+                <div class="spinner mx-auto"></div>
+                <p class="text-gray-400 text-sm mt-2">Generating briefing...</p>
+            </div>
+            <div id="briefingDisplay" class="mt-4 p-4 bg-gray-700 rounded-lg text-gray-200 text-sm italic hidden">
+                <p id="briefingText"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Updated Guest List - Parsed from your provided text
+        const guestList = {
+            "jenna budrewicz": "Table 3 - Mjolnir Worth",
+            "cassie beaumont": "Table 3 - Mjolnir Worth",
+            "aneka tsujimoto": "Table 3 - Mjolnir Worth",
+            "luca mele": "Table 3 - Mjolnir Worth",
+            "himagiri santhiran": "Table 3 - Mjolnir Worth",
+            "tharra yogeswaran": "Table 3 - Mjolnir Worth",
+            "shaula kumar": "Table 3 - Mjolnir Worth",
+            "jessica d'silva": "Table 3 - Mjolnir Worth",
+            "ellie hopgood": "Table 3 - Mjolnir Worth",
+            "uttara mohanan": "Table 3 - Mjolnir Worth",
+            "andre dalla pria de lima": "Table 2 - Super Soldier Serum",
+            "livia maia": "Table 2 - Super Soldier Serum",
+            "daryl irwin": "Table 2 - Super Soldier Serum",
+            "petrina stamos": "Table 2 - Super Soldier Serum",
+            "manoj sam": "Table 2 - Super Soldier Serum",
+            "yurou chen": "Table 2 - Super Soldier Serum",
+            "hemant mandan": "Table 2 - Super Soldier Serum",
+            "mitchell free": "Table 2 - Super Soldier Serum",
+            "victoria agatha": "Table 2 - Super Soldier Serum",
+            "sidharth manoj": "Table 2 - Super Soldier Serum",
+            "amethyst chong": "Table 4 - Black Widow's Ledger",
+            "ethan bong": "Table 4 - Black Widow's Ledger",
+            "maxine gui": "Table 4 - Black Widow's Ledger",
+            "dayne lee": "Table 4 - Black Widow's Ledger",
+            "tharshinaa chandran": "Table 4 - Black Widow's Ledger",
+            "audrey lee": "Table 4 - Black Widow's Ledger",
+            "ryan tham": "Table 4 - Black Widow's Ledger",
+            "robyn gomez": "Table 4 - Black Widow's Ledger",
+            "aashtad cyrus daruwalla": "Table 5 - Hawkeye's Arrow",
+            "ciara": "Table 5 - Hawkeye's Arrow",
+            "alexander corneilius": "Table 5 - Hawkeye's Arrow",
+            "kelly cahill": "Table 5 - Hawkeye's Arrow",
+            "sanchez john": "Table 5 - Hawkeye's Arrow",
+            "thejal ramesh": "Table 5 - Hawkeye's Arrow",
+            "derez raja": "Table 5 - Hawkeye's Arrow",
+            "soenia singam": "Table 5 - Hawkeye's Arrow",
+            "zidez raja": "Table 5 - Hawkeye's Arrow",
+            "nivaysh kumar": "Table 5 - Hawkeye's Arrow",
+            "saro murugesu": "Table 1 - Stark Tower",
+            "malar gunaratnam": "Table 1 - Stark Tower",
+            "shuba shetty": "Table 1 - Stark Tower",
+            "umesh shetty": "Table 1 - Stark Tower",
+            "annapooranam kandiah": "Table 1 - Stark Tower",
+            "bawani shetty": "Table 1 - Stark Tower",
+            "ravi shetty": "Table 1 - Stark Tower",
+            "jyotsna prakash": "Table 1 - Stark Tower",
+            "prakash kandasamy": "Table 1 - Stark Tower",
+            "chokanathan pillay": "Table 6 - Green Rage",
+            "swarnamma chokanathan": "Table 6 - Green Rage",
+            "daakshash": "Table 6 - Green Rage",
+            "daasharathe": "Table 6 - Green Rage",
+            "darrshann": "Table 6 - Green Rage",
+            "radha thillai": "Table 6 - Green Rage",
+            "shantanu": "Table 6 - Green Rage",
+            "southamani": "Table 6 - Green Rage",
+            "thillai raj": "Table 6 - Green Rage",
+            "vilasini chokanathan pillay": "Table 6 - Green Rage",
+            "shesshsan": "Table 7 - Deadpool's Regeneration",
+            "gururaj chandran": "Table 7 - Deadpool's Regeneration",
+            "nageshwaran chandran": "Table 7 - Deadpool's Regeneration",
+            "aparna shetty": "Table 7 - Deadpool's Regeneration",
+            "suparna shetty": "Table 7 - Deadpool's Regeneration",
+            "poorna prakash": "Table 7 - Deadpool's Regeneration",
+            "vaishnavi prakash": "Table 7 - Deadpool's Regeneration",
+            "arunagiri lam": "Table 7 - Deadpool's Regeneration",
+            "karthik shetty": "Table 7 - Deadpool's Regeneration",
+            "rohini shetty": "Table 7 - Deadpool's Regeneration",
+            "nittesh ravintheran": "Table 8 - Loki's Mischief",
+            "bhumika santhiran": "Table 8 - Loki's Mischief",
+            "vidhyaini kandiah": "Table 8 - Loki's Mischief",
+            "anusooya subramaniam": "Table 8 - Loki's Mischief",
+            "ravintheran s gunasegaran": "Table 8 - Loki's Mischief",
+            "spare": "Table 8 - Loki's Mischief",
+            "mr.pravinraj sentna raja": "Table 8 - Loki's Mischief",
+            "navarani chellapah": "Table 8 - Loki's Mischief",
+            "subhani shanmugaraja": "Table 8 - Loki's Mischief",
+            "shanji sivaji": "Table 9 - Wolverine's Claws",
+            "padmadarshini padmanathan": "Table 9 - Wolverine's Claws",
+            "jeyarani chellappah": "Table 9 - Wolverine's Claws",
+            "sarojini shanmugaraja": "Table 9 - Wolverine's Claws",
+            "shanmugaraja subramaniam": "Table 9 - Wolverine's Claws",
+            "tharumaeswary chellappah": "Table 9 - Wolverine's Claws",
+            "vishakan raviprakash": "Table 9 - Wolverine's Claws",
+            "shamala": "Table 9 - Wolverine's Claws",
+            "bruce": "Table 9 - Wolverine's Claws",
+            "mr.gunasegaran sinnathamby": "Table 10 - Ultron's Vision",
+            "mrs jeevitra sentnaraja": "Table 10 - Ultron's Vision",
+            "mr.surentheran raman": "Table 10 - Ultron's Vision",
+            "mr.yuvarajan sentnaraja": "Table 10 - Ultron's Vision",
+            "mrs kamesvari yuvarajan": "Table 10 - Ultron's Vision",
+            "mr.ramesh gunasegaran": "Table 10 - Ultron's Vision",
+            "mrs satheeskumari gunasegaran": "Table 10 - Ultron's Vision",
+            "mr.sentna raja kalimuthu": "Table 10 - Ultron's Vision",
+            "mr.mohan gunasegaran": "Table 10 - Ultron's Vision",
+            "mrs thinavalarmathi muniandy": "Table 10 - Ultron's Vision",
+            "mrs vidhya ratchani kandaiah": "Table 11 - Daughter of Thanos",
+            "mr.sri vijayaraj dharmaraj": "Table 11 - Daughter of Thanos",
+            "mrs vilashini kandaiah": "Table 11 - Daughter of Thanos",
+            "mr.madhialaghan sathappan": "Table 11 - Daughter of Thanos",
+            "mrs vinothini kandaiah": "Table 11 - Daughter of Thanos",
+            "mr.thanaseelan": "Table 11 - Daughter of Thanos",
+            "mrs vivegarubini kandaiah": "Table 11 - Daughter of Thanos",
+            "mr.hare krishna jeyabalan": "Table 11 - Daughter of Thanos",
+            "s.nivedha": "Table 12 - The Winter Soldier",
+            "s.sadhana": "Table 12 - The Winter Soldier",
+            "ms.dhivyadarshini madhialagan": "Table 12 - The Winter Soldier",
+            "t.rudrish": "Table 12 - The Winter Soldier",
+            "t.yukdish": "Table 12 - The Winter Soldier",
+            "h.jai prasadh": "Table 12 - The Winter Soldier",
+            "h.jai kishen": "Table 12 - The Winter Soldier",
+            "h.tasvithaniya": "Table 12 - The Winter Soldier",
+            "m.sarvindharan": "Table 12 - The Winter Soldier",
+            "m.prishita nagashri": "Table 12 - The Winter Soldier",
+            "mrinalini shrither": "Table 13 - Vision's Reality",
+            "chitra shrither": "Table 13 - Vision's Reality",
+            "palani sadhasivam": "Table 13 - Vision's Reality",
+            "shanthi palani": "Table 13 - Vision's Reality",
+            "shuguna nagalingam": "Table 13 - Vision's Reality",
+            "latha nair": "Table 13 - Vision's Reality",
+            "vasnthi murali": "Table 13 - Vision's Reality",
+            "mina prakash": "Table 13 - Vision's Reality",
+            "prakash raao": "Table 13 - Vision's Reality",
+            "revati": "Table 13 - Vision's Reality",
+            "uthraa iyer": "Table 14 - Wanda's Chaos Magic",
+            "danya siva": "Table 14 - Wanda's Chaos Magic",
+            "siva sadhasivam": "Table 14 - Wanda's Chaos Magic",
+            "vasantha siva": "Table 14 - Wanda's Chaos Magic",
+            "tanggam mohanan": "Table 14 - Wanda's Chaos Magic",
+            "vasan segaran": "Table 14 - Wanda's Chaos Magic",
+            "rachael ann": "Table 14 - Wanda's Chaos Magic",
+            "ranjini ramakrishnan": "Table 14 - Wanda's Chaos Magic",
+            "shefali kanakia": "Table 14 - Wanda's Chaos Magic",
+            "geetha selvam": "Table 14 - Wanda's Chaos Magic"
+        };
+
+        const guestNameInput = document.getElementById('guestName');
+        const searchButton = document.getElementById('searchButton');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const resultText = document.getElementById('resultText');
+        const suggestionsContainer = document.getElementById('suggestionsContainer');
+
+        // New elements for LLM feature
+        const missionBriefingSection = document.getElementById('missionBriefingSection');
+        const generateBriefingButton = document.getElementById('generateBriefingButton');
+        const briefingLoading = document.getElementById('briefingLoading');
+        const briefingDisplay = document.getElementById('briefingDisplay');
+        const briefingText = document.getElementById('briefingText');
+
+        let currentTableDescription = ""; // To store the table description for the LLM prompt
+        let currentHeroName = ""; // To store the hero's name for the LLM prompt
+
+        /**
+         * Calls the Gemini API to generate a mission briefing.
+         * @param {string} heroName - The name of the hero.
+         * @param {string} tableDesc - The description of the hero's station/table.
+         */
+        async function generateMissionBriefing(heroName, tableDesc) {
+            briefingLoading.classList.remove('hidden'); // Show loading spinner
+            briefingDisplay.classList.add('hidden'); // Hide previous briefing
+            briefingText.textContent = ''; // Clear previous briefing text
+            generateBriefingButton.disabled = true; // Disable button during generation
+
+            try {
+                let chatHistory = [];
+                // Explicitly tell the LLM to use the full name
+                const prompt = `Generate a short, exciting, and concise mission briefing (2-3 sentences) for a Marvel hero named "${heroName}". This hero is assigned to "${tableDesc}". Make it sound like it's from Nick Fury or a S.H.I.E.L.D. agent. Always refer to the hero by their full name, "${heroName}", in the briefing. Focus on action and a clear objective.`;
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = { contents: chatHistory };
+                const apiKey = "AIzaSyB7Z7tOF-fnuJSZtG56HT7A0AgVIC3WHo8"; // Canvas will automatically provide the API key at runtime.
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    briefingText.textContent = text;
+                    briefingDisplay.classList.remove('hidden');
+                } else {
+                    briefingText.textContent = "Briefing failed: No response from HQ. Try again.";
+                    briefingDisplay.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Error generating briefing:", error);
+                briefingText.textContent = "Briefing failed: Transmission interrupted. Please check your connection.";
+                briefingDisplay.classList.remove('hidden');
+            } finally {
+                briefingLoading.classList.add('hidden'); // Hide loading spinner
+                generateBriefingButton.disabled = false; // Re-enable button
+            }
+        }
+
+        /**
+         * Handles the search for the guest's table number.
+         */
+        function searchTable() {
+            const name = guestNameInput.value.trim(); // Keep original casing for display
+            const lowerCaseName = name.toLowerCase(); // Use lowercase for lookup
+
+            // Hide previous results and briefing section
+            resultDisplay.classList.add('hidden');
+            missionBriefingSection.classList.add('hidden');
+            briefingDisplay.classList.add('hidden'); // Ensure briefing is hidden on new search
+            briefingText.textContent = ''; // Clear briefing text
+
+            if (lowerCaseName === "") {
+                resultText.textContent = "Please enter a hero name.";
+                resultDisplay.classList.remove('hidden');
+                resultDisplay.className = 'mt-8 p-5 rounded-lg text-center border-2 border-blue-500 shadow-marvel-blue';
+                resultText.className = 'text-2xl font-bold text-white';
+                suggestionsContainer.classList.add('hidden');
+                return;
+            }
+
+            const tableDescription = guestList[lowerCaseName];
+
+            if (tableDescription) {
+                resultText.textContent = `${name} is at ${tableDescription}.`; // Use original casing for display
+                resultDisplay.classList.remove('hidden');
+                resultDisplay.className = 'mt-8 p-5 rounded-lg text-center border-2 border-green-500 shadow-lg bg-green-900';
+                resultText.className = 'text-2xl font-bold text-green-300 result-text-shadow';
+
+                // Store the table description and hero's name for the LLM prompt
+                currentTableDescription = tableDescription;
+                currentHeroName = name; // Store the original casing of the hero's name
+                missionBriefingSection.classList.remove('hidden');
+            } else {
+                resultText.textContent = `Sorry, "${name}" not found in our database.`; // Use original casing for display
+                resultDisplay.classList.remove('hidden');
+                resultDisplay.className = 'mt-8 p-5 rounded-lg text-center border-2 border-red-500 shadow-lg bg-red-900';
+                resultText.className = 'text-2xl font-bold text-red-300 result-text-shadow';
+                currentTableDescription = ""; // Clear current table description
+                currentHeroName = ""; // Clear current hero name
+            }
+
+            // guestNameInput.value = ''; // This line is intentionally commented out to keep the name in the textbox
+            suggestionsContainer.classList.add('hidden');
+        }
+
+        /**
+         * Capitalizes the first letter of each word in a string, including after periods for titles.
+         * @param {string} str The input string.
+         * @returns {string} The capitalized string.
+         */
+        function capitalizeNameForDisplay(str) {
+            return str.split(' ').map(word => {
+                // Handle "Mr.", "Mrs.", "Ms."
+                const titleMatch = word.match(/^(mr|mrs|ms)\.(.*)$/i);
+                if (titleMatch) {
+                    const title = titleMatch[1].charAt(0).toUpperCase() + titleMatch[1].slice(1).toLowerCase();
+                    const restOfName = titleMatch[2];
+                    const capitalizedRest = restOfName.charAt(0).toUpperCase() + restOfName.slice(1).toLowerCase();
+                    return title + "." + capitalizedRest;
+                }
+                // Handle single initial + period (e.g., "s.") followed by a name
+                const initialMatch = word.match(/^([a-z])\.(.*)$/i);
+                if (initialMatch) {
+                    const initial = initialMatch[1].toUpperCase();
+                    const restOfName = initialMatch[2];
+                    // Capitalize the first letter of the rest of the name
+                    const capitalizedRest = restOfName.charAt(0).toUpperCase() + restOfName.slice(1).toLowerCase();
+                    return initial + "." + capitalizedRest;
+                }
+                // For all other words, just capitalize the first letter and make rest lowercase
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }).join(' ');
+        }
+
+        /**
+         * Populates the suggestions container based on user input.
+         */
+        function showSuggestions() {
+            const input = guestNameInput.value.trim().toLowerCase();
+            suggestionsContainer.innerHTML = '';
+            resultDisplay.classList.add('hidden'); // Hide result display while typing
+            missionBriefingSection.classList.add('hidden'); // Hide briefing section while typing
+            briefingDisplay.classList.add('hidden'); // Hide briefing text
+            briefingText.textContent = ''; // Clear briefing text
+
+            if (input.length === 0) {
+                suggestionsContainer.classList.add('hidden');
+                return;
+            }
+
+            const matchingNames = Object.keys(guestList).filter(name =>
+                name.includes(input)
+            );
+
+            if (matchingNames.length > 0) {
+                matchingNames.forEach(name => {
+                    const suggestionItem = document.createElement('div');
+                    suggestionItem.classList.add('suggestion-item');
+                    // Use the new capitalization function for display
+                    suggestionItem.textContent = capitalizeNameForDisplay(name);
+                    suggestionItem.addEventListener('click', () => {
+                        guestNameInput.value = suggestionItem.textContent;
+                        suggestionsContainer.classList.add('hidden');
+                        guestNameInput.focus();
+                    });
+                    suggestionsContainer.appendChild(suggestionItem);
+                });
+                suggestionsContainer.classList.remove('hidden');
+            } else {
+                suggestionsContainer.classList.add('hidden');
+            }
+        }
+
+        // Event listeners
+        searchButton.addEventListener('click', searchTable);
+        guestNameInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                searchTable();
+            }
+        });
+        guestNameInput.addEventListener('input', showSuggestions);
+        document.addEventListener('click', function(event) {
+            if (!guestNameInput.contains(event.target) && !suggestionsContainer.contains(event.target)) {
+                suggestionsContainer.classList.add('hidden');
+            }
+        });
+
+        // Event listener for the new "Get Mission Briefing" button
+        generateBriefingButton.addEventListener('click', () => {
+            if (currentTableDescription && currentHeroName) {
+                generateMissionBriefing(currentHeroName, currentTableDescription);
+            }
+        });
+
+        // Autoplay music on window load is removed.
+    </script>
+</body>
+</html>
